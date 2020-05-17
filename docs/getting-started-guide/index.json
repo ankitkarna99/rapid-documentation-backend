@@ -1,0 +1,31 @@
+{
+  "title": "Getting Started Guide",
+  "slug": "getting-started-guide",
+  "pages": [
+    {
+      "title": "Getting Started Guide",
+      "slug": "index",
+      "fileName": "index.md",
+      "pages": null
+    },
+    {
+      "title": "User Account",
+      "slug": "user-account",
+      "fileName": "user-account.md",
+      "pages": [
+        {
+          "title": "Change Password",
+          "slug": "user-account-change-password",
+          "fileName": "user-account-change-password.md",
+          "pages": null
+        },
+        {
+          "title": "Update Portrait",
+          "slug": "user-account-update-portrait",
+          "fileName": "user-account-update-portrait.md",
+          "pages": null
+        }
+      ]
+    }
+  ]
+}
