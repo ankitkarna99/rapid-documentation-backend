@@ -1,0 +1,12 @@
+{
+  "title": "Creating a site",
+  "slug": "creating-a-site",
+  "pages": [
+    {
+      "title": "Creating a site",
+      "slug": "index",
+      "fileName": "index.md",
+      "pages": null
+    }
+  ]
+}

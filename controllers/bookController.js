@@ -3,11 +3,11 @@ const slugify = require("slugify");
 const { Remarkable } = require("remarkable");
 const breakdance = require("breakdance");
 
-const getDirectories = (source) =>
+const getDirectories = source =>
   fs
     .readdirSync(source, { withFileTypes: true })
-    .filter((dirent) => dirent.isDirectory())
-    .map((dirent) => dirent.name);
+    .filter(dirent => dirent.isDirectory())
+    .map(dirent => dirent.name);
 
 exports.create = async (req, res) => {
   const { title, indexPageType } = req.body;
@@ -52,19 +52,23 @@ exports.create = async (req, res) => {
 
   res.json({
     message: `Book [${title}] was created.`,
+    slug,
   });
 };
 
 exports.getAllBooks = async (req, res) => {
   const dirs = getDirectories("./docs");
 
-  const titles = dirs.map((dir) => {
+  const books = dirs.map(dir => {
     const bookJSON = JSON.parse(
       fs.readFileSync("./docs/" + dir + "/index.json")
     );
-    return { slug: dir, title: bookJSON.title };
+    const pages = bookJSON.pages.map(page => {
+      return { title: page.title, slug: page.slug };
+    });
+    return { slug: dir, title: bookJSON.title, pages };
   });
-  res.json(titles);
+  res.json(books);
 };
 
 exports.getBookJSON = async (req, res) => {
@@ -84,7 +88,7 @@ exports.getPageContent = async (req, res) => {
   }
 
   const [page] = bookJSON.pages.filter(
-    (page) => page.slug === req.params.pageSlug
+    page => page.slug === req.params.pageSlug
   );
 
   if (!page) throw "Page not found.";
@@ -93,7 +97,19 @@ exports.getPageContent = async (req, res) => {
     .readFileSync("./docs/" + req.params.bookSlug + "/" + page.fileName)
     .toString();
 
-  res.send(pageContent);
+  res.json({
+    title: page.title,
+    content: pageContent,
+    type: /html$/.test(page.fileName) ? "html" : "md",
+  });
+};
+
+exports.deleteBook = async (req, res) => {
+  fs.rmdirSync("./docs/" + req.params.bookSlug, { recursive: true });
+
+  res.json({
+    message: "Book Deleted.",
+  });
 };
 
 exports.getSubPageContent = async (req, res) => {
@@ -102,7 +118,7 @@ exports.getSubPageContent = async (req, res) => {
   );
 
   const [page] = bookJSON.pages.filter(
-    (page) => page.slug === req.params.pageSlug
+    page => page.slug === req.params.pageSlug
   );
 
   if (!page) throw "Page not found.";
@@ -112,7 +128,7 @@ exports.getSubPageContent = async (req, res) => {
   }
 
   const [subPage] = page.pages.filter(
-    (subPage) => subPage.slug === req.params.subPageSlug
+    subPage => subPage.slug === req.params.subPageSlug
   );
 
   if (!subPage) throw "Sub page not found.";
@@ -121,7 +137,11 @@ exports.getSubPageContent = async (req, res) => {
     .readFileSync("./docs/" + req.params.bookSlug + "/" + subPage.fileName)
     .toString();
 
-  res.send(pageContent);
+  res.json({
+    title: subPage.title,
+    content: pageContent,
+    type: /html$/.test(subPage.fileName) ? "html" : "md",
+  });
 };
 
 exports.createPage = async (req, res) => {
@@ -137,7 +157,7 @@ exports.createPage = async (req, res) => {
 
   const bookJSON = JSON.parse(fs.readFileSync(bookPath + "/index.json"));
 
-  const samePages = bookJSON.pages.filter((page) => page.slug === slug);
+  const samePages = bookJSON.pages.filter(page => page.slug === slug);
   if (samePages.length > 0) throw "Page with that title already exists.";
 
   const newPage = {
@@ -298,10 +318,14 @@ exports.deletePage = async (req, res) => {
   const targetPage = bookJSON.pages[pageIndex];
 
   bookJSON.pages = bookJSON.pages.filter(
-    (page) => page.slug !== req.params.pageSlug
+    page => page.slug !== req.params.pageSlug
   );
 
-  targetPage.pages.forEach((page) => {
+  if (!targetPage.pages) {
+    targetPage.pages = [];
+  }
+
+  targetPage.pages.forEach(page => {
     const subPagePath = bookPath + "/" + page.fileName;
     fs.unlinkSync(subPagePath);
   });
@@ -344,7 +368,7 @@ exports.deleteSubPage = async (req, res) => {
   const subPage = targetPage.pages[subPageIndex];
 
   bookJSON.pages[pageIndex].pages = bookJSON.pages[pageIndex].pages.filter(
-    (page) => page.slug !== req.params.subPageSlug
+    page => page.slug !== req.params.subPageSlug
   );
 
   if (bookJSON.pages[pageIndex].pages.length == 0) {
